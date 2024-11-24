@@ -8,6 +8,28 @@ import { twind, config, cssom, observe, stringify } from './twind';
 import { proxyStore } from '../app/proxyStore';
 import Content from './Content';
 
+import OpenAI from 'openai';
+const openai = new OpenAI({
+  // FIXME: どうやってAPIキーを隠すのかわからない
+  dangerouslyAllowBrowser: true,
+});
+
+async function convertToCatLanguage(text: string): Promise<string> {
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are a human-to-cat translator.' },
+      {
+        role: 'user',
+        content: `次の文章を猫語に変換してください: ${text}`,
+      },
+    ],
+  });
+
+  console.log(completion.choices[0].message);
+  return completion.choices[0].message.content ?? text;
+}
+
 proxyStore.ready().then(() => {
   // FIXME: どうやって一致を取っているのかわからない
   let text = '';
@@ -30,12 +52,19 @@ proxyStore.ready().then(() => {
           caretButton.classList.add('nyax-caret-listener');
         }
 
-        // if (!tweetText.classList.contains('nyax-processed')) {
-        //   // TODO: AIで猫語に変換する
-        //   console.log('猫語に変換');
-        //   tweetText.innerText = 'ニャーん';
-        //   tweetText.classList.add('nyax-processed'); // 再処理を防ぐ
-        // }
+        if (!tweetText.classList.contains('nyax-processed')) {
+          // TODO: AIで猫語に変換する
+          console.log('猫語に変換');
+          tweetText.classList.add('nyax-processed'); // 再処理を防ぐ
+          convertToCatLanguage(tweetText.innerText)
+            .then((catText) => {
+              tweetText.innerText = catText;
+              console.log('猫語', catText);
+            })
+            .catch((e) => {
+              console.error('猫語失敗', e);
+            });
+        }
       }
     });
 
