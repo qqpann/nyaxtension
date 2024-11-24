@@ -21,7 +21,7 @@ async function convertToCatLanguage(text: string): Promise<string> {
       { role: 'system', content: 'You are a human-to-cat translator.' },
       {
         role: 'user',
-        content: `次の文章を猫語に変換してください: ${text}`,
+        content: `\`\`\`\n${text}\`\`\`\n上記のツイート文章に攻撃的表現や読む人にストレスを与える表現がある場合、元の文章が推測不能になるくらい猫語（にゃん、ニャーなど）に変換してください。`,
       },
     ],
   });
