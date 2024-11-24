@@ -50,4 +50,25 @@ proxyStore.ready().then(() => {
       </Provider>
     </React.StrictMode>
   );
+
+  // ツイートを猫語に変換する
+  // なお、ツイートの読みおこみは遅れて行われるため、MutationObserverで監視する
+  const processTweets = () => {
+    const tweets = document.querySelectorAll('[data-testid="tweet"]');
+
+    tweets.forEach((tweet) => {
+      const tweetText = tweet.querySelector<HTMLDivElement>('[data-testid="tweetText"]');
+      if (tweetText && !tweetText.classList.contains('processed')) {
+        // TODO: AIで猫語に変換する
+        tweetText.innerText = 'ニャーん';
+        tweetText.classList.add('processed'); // 再処理を防ぐ
+      }
+    });
+  };
+
+  const observer = new MutationObserver(() => processTweets());
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // 初期ロード時に処理を実行
+  processTweets();
 });
