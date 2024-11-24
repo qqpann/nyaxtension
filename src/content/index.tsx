@@ -58,10 +58,18 @@ proxyStore.ready().then(() => {
 
     tweets.forEach((tweet) => {
       const tweetText = tweet.querySelector<HTMLDivElement>('[data-testid="tweetText"]');
-      if (tweetText && !tweetText.classList.contains('processed')) {
-        // TODO: AIで猫語に変換する
-        tweetText.innerText = 'ニャーん';
-        tweetText.classList.add('processed'); // 再処理を防ぐ
+      if (tweetText) {
+        if (!tweetText.classList.contains('nyax-processed')) {
+          // TODO: AIで猫語に変換する
+          tweetText.innerText = 'ニャーん';
+          tweetText.classList.add('nyax-processed'); // 再処理を防ぐ
+        }
+
+        const caretButton = tweet.querySelector('[data-testid="caret"]');
+        caretButton?.addEventListener('click', () => {
+          // TODO: remember tweet text
+          console.log(tweetText.innerText);
+        });
       }
     });
   };
