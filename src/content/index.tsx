@@ -9,6 +9,8 @@ import { proxyStore } from '../app/proxyStore';
 import Content from './Content';
 
 proxyStore.ready().then(() => {
+  // FIXME: どうやって一致を取っているのかわからない
+  let text = '';
   // ツイートを猫語に変換する
   // なお、ツイートの読みおこみは遅れて行われるため、MutationObserverで監視する
   const processTweets = debounce(() => {
@@ -19,19 +21,21 @@ proxyStore.ready().then(() => {
       const caretButton = tweet.querySelector('[data-testid="caret"]');
 
       if (tweetText) {
-        if (!tweetText.classList.contains('nyax-processed')) {
-          // TODO: AIで猫語に変換する
-          tweetText.innerText = 'ニャーん';
-          tweetText.classList.add('nyax-processed'); // 再処理を防ぐ
-        }
-
         if (caretButton && !caretButton.classList.contains('nyax-caret-listener')) {
           caretButton.addEventListener('click', () => {
             // TODO: ツイートのテキストを取得?
             console.log(tweetText.innerText);
+            text = tweetText.innerText;
           });
           caretButton.classList.add('nyax-caret-listener');
         }
+
+        // if (!tweetText.classList.contains('nyax-processed')) {
+        //   // TODO: AIで猫語に変換する
+        //   console.log('猫語に変換');
+        //   tweetText.innerText = 'ニャーん';
+        //   tweetText.classList.add('nyax-processed'); // 再処理を防ぐ
+        // }
       }
     });
 
@@ -58,7 +62,7 @@ proxyStore.ready().then(() => {
 
         // ボタンのクリックイベントを更新
         clonedButton.addEventListener('click', () => {
-          alert('猫語変換ボタンが押されました！');
+          alert('猫語変換ボタンが押されました！' + text);
         });
 
         // ドロップダウンメニューの最初に挿入
