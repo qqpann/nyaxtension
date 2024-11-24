@@ -35,24 +35,33 @@ proxyStore.ready().then(() => {
       }
     });
 
-    // // ドロップダウンメニューを探す
-    // const dropdownMenu = document.querySelector('[data-testid="Dropdown"]');
-    // if (dropdownMenu && !dropdownMenu.classList.contains('nyax-processed-menu')) {
-    //   // 独自ボタンを作成
-    //   const customButton = document.createElement('button');
-    //   customButton.innerText = '猫語変換';
+    // ドロップダウンメニューを探す
+    const dropdownMenu = document.querySelector('[data-testid="Dropdown"]');
+    if (dropdownMenu && !dropdownMenu.classList.contains('nyax-processed-menu')) {
+      // 既存のボタンを取得
+      const existingButton = dropdownMenu.querySelector('[role="menuitem"]');
+      if (existingButton) {
+        // ボタンをコピー
+        const clonedButton = existingButton.cloneNode(true) as HTMLElement;
 
-    //   // ボタンのクリックイベントを追加
-    //   customButton.addEventListener('click', () => {
-    //     alert('猫語変換ボタンが押されました！');
-    //   });
+        // 文言を変更
+        const textElement = clonedButton.querySelector('span');
+        if (textElement) {
+          textElement.innerText = '猫語変換ボタン';
+        }
 
-    //   // ドロップダウンメニューにボタンを最初に挿入
-    //   dropdownMenu.insertBefore(customButton, dropdownMenu.firstChild);
+        // ボタンのクリックイベントを更新
+        clonedButton.addEventListener('click', () => {
+          alert('猫語変換ボタンが押されました！');
+        });
 
-    //   // メニューにフラグを追加して再処理を防ぐ
-    //   dropdownMenu.classList.add('nyax-processed-menu');
-    // }
+        // ドロップダウンメニューの最初に挿入
+        dropdownMenu.insertBefore(clonedButton, dropdownMenu.firstChild);
+
+        // メニューにフラグを追加して再処理を防ぐ
+        dropdownMenu.classList.add('nyax-processed-menu');
+      }
+    }
   }, 10);
 
   // Twitterのメインコンテンツ部分に絞って監視
