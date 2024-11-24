@@ -58,6 +58,8 @@ proxyStore.ready().then(() => {
 
     tweets.forEach((tweet) => {
       const tweetText = tweet.querySelector<HTMLDivElement>('[data-testid="tweetText"]');
+      const caretButton = tweet.querySelector('[data-testid="caret"]');
+
       if (tweetText) {
         if (!tweetText.classList.contains('nyax-processed')) {
           // TODO: AIで猫語に変換する
@@ -65,11 +67,13 @@ proxyStore.ready().then(() => {
           tweetText.classList.add('nyax-processed'); // 再処理を防ぐ
         }
 
-        const caretButton = tweet.querySelector('[data-testid="caret"]');
-        caretButton?.addEventListener('click', () => {
-          // TODO: remember tweet text
-          console.log(tweetText.innerText);
-        });
+        if (caretButton && !caretButton.classList.contains('nyax-caret-listener')) {
+          caretButton.addEventListener('click', () => {
+            // TODO: ツイートのテキストを取得?
+            console.log(tweetText.innerText);
+          });
+          caretButton.classList.add('nyax-caret-listener');
+        }
       }
     });
   };
