@@ -15,7 +15,11 @@ import OpenAI from 'openai';
 
 async function isTweetToxic(text: string): Promise<boolean> {
   // OpenAI APIキーの取得
-  const items = await chrome.storage.local.get(['openaiApiKey', 'toxicExamples']);
+  const items = await chrome.storage.local.get([
+    'openaiApiKey',
+    'toxicDefinition',
+    'toxicExamples',
+  ]);
   const openaiApiKey = items.openaiApiKey;
 
   if (!openaiApiKey) {
@@ -28,6 +32,9 @@ async function isTweetToxic(text: string): Promise<boolean> {
   });
 
   // プロンプトの組み立て
+  const toxicDefinition =
+    items.toxicDefinition ||
+    '1. 読む人にストレスを与える表現を含む\n2. 攻撃的な表現を含む\n3. 嘲笑的な表現を含む';
   const toxicExamples = items.toxicExamples;
   const toxicExamplesPrompt =
     typeof toxicExamples === 'string' && toxicExamples.length > 0
@@ -38,8 +45,7 @@ ${toxicExamples}`
   const prompt = `
 以下の文章が不快かどうかを判断してください。不快である場合はtrue、それ以外はfalseを返してください。
 不快の定義:
-1. 読む人にストレスを与える表現を含む
-2. 攻撃的な表現を含む
+${toxicDefinition}
 ${toxicExamplesPrompt}
 
 判定する文章:
