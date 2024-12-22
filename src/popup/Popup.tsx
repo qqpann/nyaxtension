@@ -1,7 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const Popup = () => {
   document.body.className = 'w-[30rem] min-h-[20rem] p-4';
+
+  const [openaiApiKey, setOpenaiApiKey] = React.useState('');
+  const [toxicExamples, setToxicExamples] = React.useState('');
+
+  useEffect(() => {
+    chrome.storage.local.get(['openaiApiKey', 'toxicExamples']).then((items) => {
+      setOpenaiApiKey(items.openaiApiKey);
+      setToxicExamples(items.toxicExamples);
+    });
+  }, []);
 
   return (
     <>
@@ -27,6 +37,7 @@ const Popup = () => {
           type="text"
           className="w-full h-10 border rounded px-2"
           placeholder="Input OpenAI secret key"
+          defaultValue={openaiApiKey}
         />
         <button className="w-16 h-10 rounded bg-blue-500 text-white">Save</button>
       </form>
@@ -34,10 +45,27 @@ const Popup = () => {
       {/* separator */}
       <hr className="my-4" />
 
-      <form>
+      <form
+        className="flex flex-col gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          // get the value of the input
+          const toxicExamples = e.target[0].value || '';
+          chrome.storage.local
+            .set({ toxicExamples: toxicExamples.trim() })
+            .then(() => {
+              console.log('Saved toxic examples');
+              // alert('Saved' + toxicExamples);
+            })
+            .catch((e) => {
+              console.error('Error', e);
+            });
+        }}
+      >
         <textarea
           className="w-full h-24 border rounded p-2"
           placeholder="Input prompt to judge the tweet to be converted to cat language"
+          defaultValue={toxicExamples}
         />
         <button className="w-full h-10 rounded bg-blue-500 text-white">Save</button>
       </form>

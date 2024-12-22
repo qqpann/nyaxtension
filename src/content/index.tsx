@@ -29,13 +29,18 @@ async function isTweetToxic(text: string): Promise<boolean> {
 
   // プロンプトの組み立て
   const toxicExamples = items.toxicExamples;
+  const toxicExamplesPrompt =
+    typeof toxicExamples === 'string' && toxicExamples.length > 0
+      ? `
+以下にいくつかの例を示します:
+${toxicExamples}`
+      : '';
   const prompt = `
 以下の文章が不快かどうかを判断してください。不快である場合はtrue、それ以外はfalseを返してください。
 不快の定義:
 1. 読む人にストレスを与える表現を含む
 2. 攻撃的な表現を含む
-以下にいくつかの例を示します:
-${toxicExamples}
+${toxicExamplesPrompt}
 
 判定する文章:
 \`\`\`
@@ -142,8 +147,13 @@ proxyStore.ready().then(() => {
         }
 
         // ボタンのクリックイベントを更新
-        clonedButton.addEventListener('click', () => {
-          alert('猫語変換ボタンが押されました！' + text);
+        clonedButton.addEventListener('click', async () => {
+          // alert('猫語変換ボタンが押されました！' + text);
+          const flattenedText = text.replace(/\n/g, ' ');
+          const items = await chrome.storage.local.get(['toxicExamples']);
+          const toxicExamples = (items.toxicExamples as string | undefined) ?? '';
+          const newToxicExamples = toxicExamples.trim() + '\n' + flattenedText;
+          chrome.storage.local.set({ toxicExamples: newToxicExamples.trim() });
         });
 
         // ドロップダウンメニューの最初に挿入
