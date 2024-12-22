@@ -58,7 +58,7 @@ ${text}
 
   // OpenAI APIへのリクエスト
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4-1106-preview', // JSONモード対応モデルを指定
+    model: 'gpt-4o-mini',
     messages: [
       { role: 'system', content: 'あなたは返答をすべてJSON形式で出力します。' },
       { role: 'user', content: prompt },

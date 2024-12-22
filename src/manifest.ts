@@ -30,6 +30,7 @@ const manifest = defineManifest(async (env) => ({
         // this file is web accessible; it supports HMR b/c it's declared in `rollupOptions.input`
         'welcome/welcome.html',
         'dict/*',
+        // 'vendor/*',
         // '<all_urls>',
       ],
       matches: ['<all_urls>'],
