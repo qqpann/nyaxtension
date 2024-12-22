@@ -19,7 +19,7 @@ const manifest = defineManifest(async (env) => ({
       js: ['content/index.tsx'],
     },
   ],
-  host_permissions: ['<all_urls>'],
+  host_permissions: ['https://x.com/*'],
   options_ui: {
     page: 'options/options.html',
     open_in_tab: true,
@@ -29,6 +29,8 @@ const manifest = defineManifest(async (env) => ({
       resources: [
         // this file is web accessible; it supports HMR b/c it's declared in `rollupOptions.input`
         'welcome/welcome.html',
+        'dict/*',
+        // '<all_urls>',
       ],
       matches: ['<all_urls>'],
     },
@@ -48,7 +50,7 @@ const manifest = defineManifest(async (env) => ({
     '48': 'images/extension_48.png',
     '128': 'images/extension_128.png',
   },
-  permissions: ['storage', 'tabs'],
+  permissions: ['storage', 'tabs', 'activeTab'],
 }));
 
 export default manifest;

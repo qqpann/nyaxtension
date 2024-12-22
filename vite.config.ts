@@ -29,4 +29,11 @@ export default defineConfig({
     },
   },
   plugins: [react(), crx({ manifest })],
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js', '.json'],
+    alias: {
+      path: 'path-browserify',
+      chrome: 'webextension-polyfill',
+    },
+  },
 });

@@ -1,5 +1,7 @@
 import 'webextension-polyfill';
 import 'construct-style-sheets-polyfill';
+import { fileURLToPath } from 'url';
+import kuromoji from 'kuromoji';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
@@ -7,6 +9,7 @@ import { debounce } from 'lodash-es';
 import { twind, config, cssom, observe, stringify } from './twind';
 import { proxyStore } from '../app/proxyStore';
 import Content from './Content';
+import path from 'path';
 
 import OpenAI from 'openai';
 const openai = new OpenAI({
@@ -14,7 +17,7 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true,
 });
 
-async function convertToCatLanguage(text: string): Promise<string> {
+async function convertToCatLanguageByLLM(text: string): Promise<string> {
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
@@ -30,6 +33,7 @@ async function convertToCatLanguage(text: string): Promise<string> {
   return completion.choices[0].message.content ?? text;
 }
 
+console.log('processTweets');
 proxyStore.ready().then(() => {
   // FIXME: どうやって一致を取っているのかわからない
   let text = '';
@@ -113,3 +117,177 @@ proxyStore.ready().then(() => {
   // 初期ロード時に処理を実行
   processTweets();
 });
+
+type ParsedWord = {
+  word?: string;
+  attrs?: (string | undefined)[];
+};
+
+const catSounds1 = ['にゃ', 'にゅ', 'みゃ'];
+const catSounds2 = [
+  'にゃん',
+  'みゃ〜',
+  'みゃみゃ',
+  'み〜',
+  'みゃう',
+  'にゃう',
+  'にゃあ',
+  'にゃにゃ',
+  'にゃ〜',
+  'にゅ〜',
+  'うにゃ',
+  'うにゅ',
+];
+const catSounds3 = [
+  'にゃにゃ〜',
+  'みゃみゃ〜',
+  'うにゃ〜',
+  'うにゃあ',
+  'にゃ〜お',
+  'みゃ〜お',
+  'にゃお〜',
+  'みゃお〜',
+  'にゃ〜ん',
+  'みゃ〜ん',
+];
+const catSounds4 = [
+  'にゃお〜ん',
+  'にゃうにゃう',
+  'ごろごろ',
+  'ごろにゃ〜',
+  'にゃんにゃん',
+  'ごろにゃん',
+];
+
+/**
+ * min以上max以下の整数をランダムに返す
+ */
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+const catSoundsMap: Record<number, string[]> = {
+  1: catSounds1,
+  2: catSounds2,
+  3: catSounds3,
+  4: catSounds4,
+};
+function getRandomCatSoundBySize(chunkSize: number): string {
+  const sounds = catSoundsMap[chunkSize] ?? catSounds4;
+  return sounds[randomInt(0, sounds.length - 1)];
+}
+
+/**
+ * 1つの単語(読み)を猫語に変換する
+ */
+function convertSingleWordToCat(curYomi: string): string {
+  // 小文字(ゃゅょ)を削除して長さを算出
+  const curYomiOto = curYomi.replace(/[ゃゅょ]/g, '');
+  let length = Array.from(curYomiOto).length;
+  let result = '';
+
+  // 長さが4文字以下なら一度だけ
+  if (length <= 4) {
+    result += getRandomCatSoundBySize(length);
+  } else {
+    // 4文字を超える場合、1〜4文字の塊に分割して猫語を追加していく
+    while (length > 0) {
+      const chunkSize = Math.min(randomInt(1, 4), length);
+      result += getRandomCatSoundBySize(chunkSize);
+      length -= chunkSize;
+    }
+  }
+  return result;
+}
+
+/**
+ * MeCabでパースされた配列を元に猫語に変換する
+ */
+async function convertToCatLanguage(text: string): Promise<string> {
+  const parsedWords = await parseText(text);
+  let convertedComment = '';
+
+  for (const parsedWord of parsedWords) {
+    const curYomi = parsedWord.attrs?.[7] ?? parsedWord.word ?? null;
+    if (!curYomi || curYomi === 'EOS' || curYomi.trim() === '') continue;
+
+    // 記号をそのまま使用
+    if (/^[ー！？!?、。]+$/u.test(curYomi) || /^[ー！？!?、。]+$/u.test(parsedWord.word ?? '')) {
+      convertedComment += parsedWord.word;
+      continue;
+    }
+
+    // 読みが '*' の場合はスキップ
+    if (curYomi === '*') {
+      continue;
+    }
+
+    // 猫語に変換
+    convertedComment += convertSingleWordToCat(curYomi);
+  }
+
+  // 最後に文字置換
+  return convertedComment.replace(/ー/g, '〜').replace(/!/g, '！').replace(/\?/g, '？');
+}
+
+// 形態素解析を行う関数
+async function parseText(text: string): Promise<ParsedWord[]> {
+  return new Promise((resolve, reject) => {
+    // const dicPath = path.resolve(fileURLToPath(import.meta.url), './dict');
+    // const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const dicPath = chrome.runtime.getURL('dict');
+    kuromoji
+      .builder({ dicPath })
+      // .builder({ dicPath: '/node_modules/kuromoji/dict/' })
+      // .builder({ dicPath: chrome.extension.getURL(path.join(__dirname, '/dict')) })
+      // .builder({ dicPath: chrome.extension.getURL('/dict') })
+      // .builder({ dicPath: '/dict' })
+      // .builder({ dicPath: 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/' })
+      .build((err, tokenizer) => {
+        if (err) {
+          return reject(err);
+        }
+
+        // トークン化
+        const tokens = tokenizer.tokenize(text);
+
+        // `ParsedWord` フォーマットに変換
+        const parsedWords: ParsedWord[] = tokens.map((token) => ({
+          word: token.surface_form,
+          attrs: [
+            token.pos, // 品詞
+            token.pos_detail_1, // 品詞細分類1
+            token.pos_detail_2, // 品詞細分類2
+            token.pos_detail_3, // 品詞細分類3
+            token.conjugated_type, // 活用型
+            token.conjugated_form, // 活用形
+            token.basic_form, // 基本形
+            token.reading, // 読み
+            token.pronunciation, // 発音
+          ],
+        }));
+
+        resolve(parsedWords);
+      });
+  });
+}
+
+// // 使用例
+// const parsedWordsSample: ParsedWord[] = [
+//   {
+//     word: 'こんにちは',
+//     attrs: [
+//       undefined,
+//       undefined,
+//       undefined,
+//       undefined,
+//       undefined,
+//       undefined,
+//       undefined,
+//       'コンニチハ',
+//     ],
+//   },
+//   { word: '！', attrs: [] },
+// ];
+
+// console.log(convertToCatLanguage(parsedWordsSample));
