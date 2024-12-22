@@ -13,27 +13,72 @@ import path from 'path';
 
 import OpenAI from 'openai';
 
-async function convertToCatLanguageByLLM(text: string): Promise<string> {
-  const items = await chrome.storage.local.get('openaiApiKey');
+async function isTweetToxic(text: string): Promise<boolean> {
+  // OpenAI APIキーの取得
+  const items = await chrome.storage.local.get(['openaiApiKey', 'toxicExamples']);
   const openaiApiKey = items.openaiApiKey;
+
+  if (!openaiApiKey) {
+    throw new Error('OpenAI APIキーが見つかりません');
+  }
+
   const openai = new OpenAI({
-    // FIXME: どうやってAPIキーを隠すのかわからない
     dangerouslyAllowBrowser: true,
     apiKey: openaiApiKey,
   });
+
+  // プロンプトの組み立て
+  const toxicExamples = items.toxicExamples;
+  const prompt = `
+以下の文章が不快かどうかを判断してください。不快である場合はtrue、それ以外はfalseを返してください。
+不快の定義:
+1. 読む人にストレスを与える表現を含む
+2. 攻撃的な表現を含む
+以下にいくつかの例を示します:
+${toxicExamples}
+
+判定する文章:
+\`\`\`
+${text}
+\`\`\`
+
+結果をJSON形式で返してください。例: {"toxic": true}
+  `;
+
+  // OpenAI APIへのリクエスト
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4-1106-preview', // JSONモード対応モデルを指定
     messages: [
-      { role: 'system', content: 'You are a human-to-cat translator.' },
-      {
-        role: 'user',
-        content: `\`\`\`\n${text}\`\`\`\n上記のツイート文章に攻撃的表現や読む人にストレスを与える表現がある場合、元の文章が推測不能になるくらい猫語（にゃん、ニャーなど）に変換してください。`,
-      },
+      { role: 'system', content: 'あなたは返答をすべてJSON形式で出力します。' },
+      { role: 'user', content: prompt },
     ],
+    response_format: { type: 'json_object' }, // JSONモードを指定
   });
 
-  console.log(completion.choices[0].message);
-  return completion.choices[0].message.content ?? text;
+  // レスポンスから結果を解析
+  const responseContent = completion.choices[0].message?.content || '{}';
+  try {
+    const result = JSON.parse(responseContent);
+    // console.log('OpenAI結果:', result);
+    const toxic = result.toxic ?? false;
+    if (toxic) {
+      console.warn('不快な内容が含まれています:', text);
+    }
+    return toxic;
+  } catch (e) {
+    console.error('JSON解析エラー:', e, responseContent);
+    return false;
+  }
+}
+
+async function convertToCatLanguageByLLM(text: string): Promise<string> {
+  const toxic = await isTweetToxic(text);
+  if (toxic) {
+    return 'にゃ〜ん' + 'toxic';
+  } else {
+    // return convertToCatLanguage(text);
+    return text + 'not toxic';
+  }
 }
 
 console.log('processTweets');
@@ -63,7 +108,7 @@ proxyStore.ready().then(() => {
           // TODO: AIで猫語に変換する
           console.log('猫語に変換');
           tweetText.classList.add('nyax-processed'); // 再処理を防ぐ
-          convertToCatLanguage(tweetText.innerText)
+          convertToCatLanguageByLLM(tweetText.innerText)
             .then((catText) => {
               tweetText.innerText = catText;
               console.log('猫語', catText);
