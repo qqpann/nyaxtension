@@ -12,12 +12,15 @@ import Content from './Content';
 import path from 'path';
 
 import OpenAI from 'openai';
-const openai = new OpenAI({
-  // FIXME: どうやってAPIキーを隠すのかわからない
-  dangerouslyAllowBrowser: true,
-});
 
 async function convertToCatLanguageByLLM(text: string): Promise<string> {
+  const items = await chrome.storage.local.get('openaiApiKey');
+  const openaiApiKey = items.openaiApiKey;
+  const openai = new OpenAI({
+    // FIXME: どうやってAPIキーを隠すのかわからない
+    dangerouslyAllowBrowser: true,
+    apiKey: openaiApiKey,
+  });
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
