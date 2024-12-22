@@ -85,10 +85,10 @@ ${text}
 async function convertToCatLanguageByLLM(text: string): Promise<string> {
   const toxic = await isTweetToxic(text);
   if (toxic) {
-    return 'にゃ〜ん' + 'toxic';
+    return convertToCatLanguage(text);
   } else {
     // return convertToCatLanguage(text);
-    return text + 'not toxic';
+    return text;
   }
 }
 
