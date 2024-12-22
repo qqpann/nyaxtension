@@ -158,7 +158,7 @@ proxyStore.ready().then(() => {
           const flattenedText = text.replace(/\n/g, ' ');
           const items = await chrome.storage.local.get(['toxicExamples']);
           const toxicExamples = (items.toxicExamples as string | undefined) ?? '';
-          const newToxicExamples = toxicExamples.trim() + '\n' + flattenedText;
+          const newToxicExamples = toxicExamples.trim() + '\n' + '- ' + flattenedText;
           chrome.storage.local.set({ toxicExamples: newToxicExamples.trim() });
         });
 
